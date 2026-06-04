@@ -269,6 +269,7 @@
         top: 0; left: 0; z-index: 5;
         cursor: pointer;
         touch-action: none;
+        transition: opacity 0.5s ease;
     }
 
     .count-grid {
@@ -352,6 +353,110 @@
         width: 100%;
     }
 
+    /* RED CARTON CARD DISPLAY LAYOUT SYSTEM */
+    .carton-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 320px;
+        height: 460px;
+        margin: 25px auto 10px auto;
+        border: 2px solid var(--gold);
+        border-radius: 12px;
+        overflow: hidden;
+        background-color: #200005;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .invitation-card-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .carton-door {
+        position: absolute;
+        top: 0;
+        width: 53%; /* Slight geometric overlap in the center */
+        height: 100%;
+        background: linear-gradient(135deg, var(--burgundy) 0%, #200005 100%);
+        z-index: 10;
+        transition: transform 1s cubic-bezier(0.77, 0, 0.175, 1);
+        display: flex;
+        align-items: center;
+    }
+
+    .carton-door-left {
+        left: 0;
+        border-right: 2px dashed var(--gold);
+        justify-content: flex-end;
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
+    }
+
+    .carton-door-right {
+        right: 0;
+        border-left: 2px dashed var(--gold);
+        justify-content: flex-start;
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
+
+    /* Chain pull stick mechanism */
+    .chain-container {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 24px;
+        height: 180px;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        touch-action: none;
+    }
+
+    .chain-link-stick {
+        width: 4px;
+        height: 130px;
+        background: repeating-linear-gradient(to bottom, var(--gold), var(--gold) 4px, #553f09 4px, #553f09 8px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    .chain-pull-handle {
+        width: 26px;
+        height: 26px;
+        background: radial-gradient(circle, #fffdf2 20%, var(--gold) 100%);
+        border: 2px solid var(--burgundy);
+        border-radius: 50%;
+        cursor: grab;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    .chain-shake-anim {
+        animation: chainWobble 2s ease-in-out infinite;
+        transform-origin: top center;
+    }
+
+    @keyframes chainWobble {
+        0% { transform: translateX(-50%) rotate(0deg); }
+        25% { transform: translateX(-50%) rotate(4deg); }
+        50% { transform: translateX(-50%) rotate(-4deg); }
+        75% { transform: translateX(-50%) rotate(2deg); }
+        100% { transform: translateX(-50%) rotate(0deg); }
+    }
+
+    /* Splitting active carton styles */
+    .carton-wrapper.opened .carton-door-left {
+        transform: translateX(-105%);
+    }
+    .carton-wrapper.opened .carton-door-right {
+        transform: translateX(105%);
+    }
+    .carton-wrapper.opened .chain-container {
+        display: none;
+    }
+
     .footer-note {
         font-family: 'Great Vibes', cursive;
         font-size: 26pt;
@@ -419,12 +524,12 @@
             
             <div class="couple-display">
                 <div class="c-name">Muhammed Asheeq</div>
-                <p class="c-parent">Son of Mr. Sooppy C. M. & Mrs. Thahira K. K.</p>
+                <p class="c-parent">BELOVED SON OF<br>Mr. Sooppy C. M. & Mrs. Thahira K. K</p>
                 
                 <div style="color: var(--gold); font-size: 14pt; font-weight: bold; margin: 5px 0;">&</div>
                 
                 <div class="c-name">Hafila Mujeeb</div>
-                <p class="c-parent">Daughter of Mr. Mujeeb E. M. & Mrs. Safreena</p>
+                <p class="c-parent">BELOVED DAUGHTER OF<br>Mr. Mujeeb E. M. & Mrs. Safreena T.P.</p>
             </div>
         </div>
     </section>
@@ -504,6 +609,20 @@
                     <p style="font-size:9.5pt; color:#444; line-height:1.5; font-style:normal;">
                         With the noble blessings of the almighty, we cordially invite you along with your family to grace this auspicious occasion with your presence and valuable Duas.
                     </p>
+                </div>
+
+                <!-- NEW COMPONENT BLOCK: RED CARTON SPLIT WRAPPER FOR USER PREFERRED IMAGE -->
+                <div class="carton-wrapper" id="carton-frame">
+                    <div class="carton-door carton-door-left"></div>
+                    <div class="carton-door carton-door-right"></div>
+                    
+                    <!-- Shaking interactive chain rod handle assembly -->
+                    <div class="chain-container chain-shake-anim" id="chain-rod">
+                        <div class="chain-link-stick"></div>
+                        <div class="chain-pull-handle" id="chain-handle"></div>
+                    </div>
+                    
+                    <img src="https://almahmoodksa.com/assets/images/wedding invitation1.png" class="invitation-card-img" alt="Wedding Invitation Card Detail">
                 </div>
 
                 <div class="footer-note">Barakallahu Lakuma</div>
@@ -735,6 +854,7 @@
     const cvs = document.getElementById('canvas-mask');
     const cx = cvs.getContext('2d');
     let painting = false;
+    let automatedScratchTriggered = false;
 
     function initMask() {
         cx.fillStyle = '#caa43b';
@@ -749,8 +869,34 @@
         cx.fillText('SCRATCH TO REVEAL DATE', cvs.width/2, cvs.height/2 + 5);
     }
 
+    // Auto calculate rubbed pixels to clear layout seamlessly
+    function calculateScratchPercentage() {
+        if (automatedScratchTriggered) return;
+        const imgData = cx.getImageData(0, 0, cvs.width, cvs.height);
+        let clearedPixels = 0;
+        
+        // Loop through alpha values to find transparent ones
+        for (let i = 3; i < imgData.data.length; i += 4) {
+            if (imgData.data[i] === 0) {
+                clearedPixels++;
+            }
+        }
+        
+        const totalPixels = cvs.width * cvs.height;
+        const currentPercentage = (clearedPixels / totalPixels) * 100;
+
+        // If partially scratched beyond 45%, trigger an automatic fade-out
+        if (currentPercentage >= 45) {
+            automatedScratchTriggered = true;
+            cvs.style.opacity = '0';
+            setTimeout(() => {
+                cx.clearRect(0, 0, cvs.width, cvs.height);
+            }, 500);
+        }
+    }
+
     function drawScratch(e) {
-        if(!painting) return;
+        if(!painting || automatedScratchTriggered) return;
         const bounds = cvs.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -764,12 +910,71 @@
     }
 
     cvs.addEventListener('mousedown', () => painting = true);
-    cvs.addEventListener('mouseup', () => painting = false);
+    window.addEventListener('mouseup', () => {
+        painting = false;
+        calculateScratchPercentage();
+    });
     cvs.addEventListener('mousemove', drawScratch);
+    
     cvs.addEventListener('touchstart', (e) => { painting = true; drawScratch(e); });
-    cvs.addEventListener('touchend', () => painting = false);
+    cvs.addEventListener('touchend', () => {
+        painting = false;
+        calculateScratchPercentage();
+    });
     cvs.addEventListener('touchmove', drawScratch);
     initMask();
+
+    // INTERACTIVE RED CARTON IMAGE SPLIT ENGINE
+    const chainRod = document.getElementById('chain-rod');
+    const chainHandle = document.getElementById('chain-handle');
+    const cartonFrame = document.getElementById('carton-frame');
+    let activeChainDrag = false;
+
+    function processChainPull(clientY) {
+        if (!activeChainDrag) return;
+        const frameBounds = cartonFrame.getBoundingClientRect();
+        let displacementY = clientY - frameBounds.top;
+        
+        // Boundaries constraint limits for vertical drag stick length
+        if (displacementY < 10) displacementY = 10;
+        if (displacementY > 220) displacementY = 220;
+
+        chainRod.style.top = (displacementY - 10) + 'px';
+
+        // Critical drop threshold reached -> Open Carton!
+        if (displacementY >= 200) {
+            activeChainDrag = false;
+            cartonFrame.classList.add('opened');
+        }
+    }
+
+    chainHandle.addEventListener('mousedown', () => {
+        activeChainDrag = true;
+        chainRod.classList.remove('chain-shake-anim');
+    });
+    window.addEventListener('mouseup', () => {
+        if (activeChainDrag) {
+            activeChainDrag = false;
+            chainRod.style.top = '-10px';
+            chainRod.classList.add('chain-shake-anim');
+        }
+    });
+    window.addEventListener('mousemove', (e) => processChainPull(e.clientY));
+
+    chainHandle.addEventListener('touchstart', () => {
+        activeChainDrag = true;
+        chainRod.classList.remove('chain-shake-anim');
+    });
+    window.addEventListener('touchend', () => {
+        if (activeChainDrag) {
+            activeChainDrag = false;
+            chainRod.style.top = '-10px';
+            chainRod.classList.add('chain-shake-anim');
+        }
+    });
+    window.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) processChainPull(e.touches[0].clientY);
+    });
 
     // Celestial Moon & Star Scroll Alignment Logic
     window.addEventListener('scroll', () => {
